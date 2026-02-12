@@ -1,0 +1,44 @@
+#include <iostream>
+#include <fstream>
+using namespace std;
+
+long long compteur;
+
+void bubble_sort(int A[], int n) {
+	compteur = 0;
+	for (int i = 0; i < n - 1; i++) {
+		for (int j = 0; j < n - i - 1; j++) {
+			compteur++;
+
+			if (A[j] > A[j + 1]) {
+				int temp = A[j];
+				A[j] = A[j + 1];
+				A[j + 1] = temp;
+				compteur += 3;
+			}
+		}
+	}
+	cout << "Compteur= "<<compteur << endl;
+}
+
+int main() {
+	ofstream fout("results_max.txt");
+	for (int n = 100; n <= 1000; n += 100) {
+		int* A = new int[n];
+		cout << "Somme maximale " << endl;
+		cout << "Matrice avant triage" << endl;
+		for (int i = 0; i < n; i++)
+			cout << A[i] << " ";
+	}
+
+	cout << "Matrice avant triage" << endl;
+	for (int i = 0; i < n; i++)
+		cout << A[i] << " ";
+	cout << endl;
+	cout << "Matrice apres triage" << endl;
+	bubble_sort(A, n);
+	for (int i = 0; i < n; i++)
+		cout << A[i] << " ";
+
+	return 0;
+}
