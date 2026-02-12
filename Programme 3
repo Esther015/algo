@@ -1,0 +1,36 @@
+#include <iostream>
+#include <fstream>
+using namespace std;
+
+int main() {
+	ofstream file("resultats.txt");
+
+	for (int n = 2; n <= 30; n += 2) {
+			int A[100][100];
+			int B[100], C[100];
+			long long T = 0;
+
+			//cout << "Remplissage" << endl;
+			for (int i = 0; i < n; i++) {
+				B[i] = i + 1;
+				for (int j = 0; j < n; j++)
+					A[i][j] = j + 1;
+			}
+
+			for (int i = 0; i < n; i++) {
+				C[i] = 0;
+				T++;
+				for (int j = 0; j < n; j++) {
+					int temp = A[i][j] * B[j];
+					T++;
+					C[i] = C[i] + temp;
+					T++;
+					T++;
+				}
+			}
+			file << n << " " << T << endl;
+	}
+	file.close();
+	cout << "\n Resultats enregistres dans results.txt" << endl;
+	return 0;
+}
