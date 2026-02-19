@@ -1,0 +1,143 @@
+#include <iostream>
+#include  <vector>
+#include <random>
+#include <cmath>
+#include<fstream>
+#include <iomanip>
+
+using namespace std; 
+
+const short blanc = 0;
+const short noir = 1;
+const int max_n = 1000;
+const int min_n = 100;
+const int pas = 100;
+const int nb_ex_par_n = 10;
+
+struct ImageRect {
+	int x1, y1;
+	int x2, y2;
+};
+
+short** picture = nullptr;
+int current_n = 0;
+long long operations = 0;
+
+void allouerPicture(int n) {
+	if (picture !=nullptr) {
+		for (int i = 0; i < current_n; i++) {
+			delete[] picture[i];
+		}
+		delete[] picture;
+	}
+	picture = new short* [n];
+	for (int i = 0; i < n; i++)
+		picture[i] = new short[n];
+	current_n = n;
+}
+
+void iniblanc(int n) {
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++)
+			picture[i][j] = blanc;
+	}
+}
+
+void F(int x, int y, int taille) {
+	int epaisseur = max(1, taille / 8);
+	int largeur = taille / 3;
+	int hauteur = taille;
+
+	//verticale de la lettre 90deg
+	for (int i = 0; i < hauteur; i++) {
+		for (int e = 0; e < epaisseur; e++) {
+			int px = x + largeur + e;
+			int py = y + i;
+			if (px >= 0 && px < current_n && py >= 0 && py < current_n) {
+				picture[px][py] = noir;
+			}
+		}
+	}
+
+	int rayon = largeur * 2;
+
+	for (int r = 0; r <= rayon; r++) {
+		int py = y + r; 
+		for (int e = 0; e < epaisseur; e++) {
+			for (int dx = 0; dx <= largeur; dx++) {
+				int px = x + dx + e;
+				if (px >= 0 && px < current_n && py >= 0 && py < current_n) {
+					if (dx <= rayon - r)
+						picture[px][y] = noir;
+				}
+			}
+		}
+	}
+
+	for (int i = 0; i <= rayon; i++) {
+		for (int e = 0; e < epaisseur; e++) {
+			int px1 = x + largeur - i + e;
+			int py1 = y + i;
+			if (px1 >= 0 && px1 < current_n && py1 >= 0 && py1 < current_n) {
+				if (i <= largeur) {
+					picture[px1][py1] = noir;
+				}
+			}
+
+			int px2 = x + i + e;
+			int py2 = y + i;
+			if (px2 >= 0 && px2 < current_n && py2 >= 0 && py2 < current_n) {
+				if (i <= largeur) {
+					picture[px2][py2] = noir;
+				}
+			}
+		}
+	}
+
+	int boucle_taille = largeur;
+
+	for (int i = 0; i < boucle_taille; i++) {
+		for (int e = 0; e < epaisseur; e++) {
+			int px = x + largeur - i + e;
+			int py = y + hauteur - boucle_taille + i;
+			if (px >= 0 && px < current_n && py >= 0 && py < current_n) {
+				if (i < boucle_taille / 2) {
+					picture[px][py] = noir;
+				}
+			}
+		}
+	}
+
+	int liaisonY = y + rayon;
+	for (int dx = 0; dx <= largeur * 2; dx++) {
+		for (int e = 0; e < epaisseur; e++) {
+			int px = x + dx + e;
+			if (px >= 0 && px < current_n && liaisonY >= 0 && liaisonY < current_n) {
+				if (dx < largeur *1.5) {
+					picture[px][liaisonY] = noir;
+				}
+			}
+		}
+	}
+}
+
+//RECHERCHE IMAGE
+
+//PROGRAMME P1()
+
+void P1() {
+	cout << "Programme 1" << endl;
+	allouerPicture(50);
+	iniblanc(50);
+
+	cout << "placement de lettre " << endl;
+	F(5, 5, 10);
+
+
+}
+int main() {
+
+	P1();
+
+	return 0;
+}
