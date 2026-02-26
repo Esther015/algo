@@ -1,1 +1,109 @@
-1
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include <ctime>
+using namespace std;
+
+long long operations = 0;
+
+int partition(int arr[], int low, int high) {
+    int pivot = arr[high];
+    int i = low - 1;
+    
+    for (int j = low; j <= high - 1; j++) {
+        operations++;
+        if (arr[j] <= pivot) {
+            i++;
+            swap(arr[i], arr[j]);
+            operations += 3;
+        }
+    }
+    
+    swap(arr[i + 1], arr[high]);
+    operations += 3;
+    return i + 1;
+}
+
+void quickSort(int arr[], int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
+}
+
+void initMin(int arr[], int n) {
+    for (int i = 0; i < n; i++)
+        arr[i] = i;
+}
+
+void initMax(int arr[], int n) {
+    for (int i = 0; i < n; i++)
+        arr[i] = n - i;
+}
+
+void initRandom(int arr[], int n) {
+    for (int i = 0; i < n; i++)
+        arr[i] = rand() % (10 * n);
+}
+
+int main() {
+    srand(time(NULL));
+    
+    cout << "Programme démarré..." << endl;
+    
+    ofstream fmin("min.txt");
+    ofstream fmean("mean.txt");
+    ofstream fmax("max.txt");
+    
+    if (!fmin.is_open() || !fmean.is_open() || !fmax.is_open()) {
+        cout << "Erreur d'ouverture des fichiers !" << endl;
+        return 1;
+    }
+    
+    cout << "Fichiers créés avec succès" << endl;
+    
+    // Test avec une petite valeur d'abord
+    for (int n = 100; n <= 1000; n += 100) {
+        cout << "Traitement de n = " << n << endl;
+        
+        int* arr = new int[n];
+        
+        // Test min
+        initMin(arr, n);
+        operations = 0;
+        quickSort(arr, 0, n-1);
+        fmin << n << " " << operations << endl;
+        cout << "  Min: " << operations << " opérations" << endl;
+        
+        // Test max
+        initMax(arr, n);
+        operations = 0;
+        quickSort(arr, 0, n-1);
+        fmax << n << " " << operations << endl;
+        cout << "  Max: " << operations << " opérations" << endl;
+        
+        // Test mean (avec moins de répétitions pour le test)
+        long long totalOps = 0;
+        for (int k = 0; k < 10; k++) {  // 10 au lieu de 1000 pour tester
+            initRandom(arr, n);
+            operations = 0;
+            quickSort(arr, 0, n-1);
+            totalOps += operations;
+        }
+        fmean << n << " " << (totalOps / 10.0) << endl;
+        cout << "  Mean: " << (totalOps / 10.0) << " opérations" << endl;
+        
+        delete[] arr;
+    }
+    
+    fmin.close();
+    fmean.close();
+    fmax.close();
+    
+    cout << "\nCalcul terminé !" << endl;
+    cout << "Appuyez sur Entrée pour quitter...";
+    cin.get();
+    
+    return 0;
+}
