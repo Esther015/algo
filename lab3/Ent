@@ -1,0 +1,423 @@
+#include <iostream>
+#include <vector>
+#include <random>
+#include <fstream>
+#include <cmath>
+#include <iomanip>
+
+using namespace std;
+
+// Constantes
+const int BLANC = 0;
+const int NOIR = 1;
+const int MAX_N = 1000;
+const int MIN_N = 100;
+const int PAS = 100;
+const int NB_EXP_PAR_N = 10; // Nombre d'expériences par valeur de n
+
+// Structure pour stocker les coordonnées d'une image trouvée
+struct Rectangle {
+    int x1, y1; // Coin supérieur gauche
+    int x2, y2; // Coin inférieur droit
+};
+
+// Variables globales
+short** Image = nullptr;
+int n_actuel = 0;
+long long operations = 0;
+
+// Fonction pour allouer la matrice
+void allouerImage(int n) {
+    if (Image != nullptr) {
+        for (int i = 0; i < n_actuel; i++) {
+            delete[] Image[i];
+        }
+        delete[] Image;
+    }
+    
+    Image = new short*[n];
+    for (int i = 0; i < n; i++) {
+        Image[i] = new short[n];
+    }
+    n_actuel = n;
+}
+
+// Fonction pour initialiser à blanc
+void initialiserBlanc(int n) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            Image[i][j] = BLANC;
+        }
+    }
+}
+
+// ============================================
+// FONCTION F : Crée une image de la lettre 'б'
+// ============================================
+void F(int x, int y, int taille) {
+    // Dessine une lettre 'б' cyrillique stylisée
+    // Composée de segments horizontaux (0°), verticaux (90°) et diagonaux (±45°)
+    
+    int epaisseur = max(1, taille / 8);
+    int largeur = taille / 3;
+    int hauteur = taille;
+    
+    // 1. Segment vertical principal (90°) - le corps de la lettre
+    for (int i = 0; i < hauteur; i++) {
+        for (int e = 0; e < epaisseur; e++) {
+            int px = x + largeur + e;
+            int py = y + i;
+            if (px >= 0 && px < n_actuel && py >= 0 && py < n_actuel) {
+                Image[px][py] = NOIR;
+            }
+        }
+    }
+    
+    // 2. Partie arrondie supérieure (combinaison de segments)
+    int rayon = largeur * 2;
+    
+    // Segments horizontaux (0°) pour la partie arrondie
+    for (int r = 0; r <= rayon; r++) {
+        int py = y + r;
+        for (int e = 0; e < epaisseur; e++) {
+            // De x à x + largeur (partie gauche de l'arrondi)
+            for (int dx = 0; dx <= largeur; dx++) {
+                int px = x + dx + e;
+                if (px >= 0 && px < n_actuel && py >= 0 && py < n_actuel) {
+                    if (dx <= rayon - r) { // Forme arrondie
+                        Image[px][py] = NOIR;
+                    }
+                }
+            }
+        }
+    }
+    
+    // 3. Segments diagonaux (45° et -45°) pour l'arrondi
+    for (int i = 0; i <= rayon; i++) {
+        // Diagonale 45° (montante)
+        for (int e = 0; e < epaisseur; e++) {
+            int px1 = x + largeur - i + e;
+            int py1 = y + i;
+            if (px1 >= 0 && px1 < n_actuel && py1 >= 0 && py1 < n_actuel) {
+                if (i <= largeur) {
+                    Image[px1][py1] = NOIR;
+                }
+            }
+            
+            // Diagonale -45° (descendante)
+            int px2 = x + i + e;
+            int py2 = y + i;
+            if (px2 >= 0 && px2 < n_actuel && py2 >= 0 && py2 < n_actuel) {
+                if (i <= largeur) {
+                    Image[px2][py2] = NOIR;
+                }
+            }
+        }
+    }
+    
+    // 4. Boucle inférieure caractéristique du 'б'
+    int boucle_taille = largeur;
+    for (int i = 0; i < boucle_taille; i++) {
+        // Diagonale -45° pour la boucle
+        for (int e = 0; e < epaisseur; e++) {
+            int px = x + largeur - i + e;
+            int py = y + hauteur - boucle_taille + i;
+            if (px >= 0 && px < n_actuel && py >= 0 && py < n_actuel) {
+                if (i < boucle_taille/2) {
+                    Image[px][py] = NOIR;
+                }
+            }
+        }
+    }
+    
+    // 5. Ligne horizontale de liaison (0°)
+    int liaison_y = y + rayon;
+    for (int dx = 0; dx <= largeur * 2; dx++) {
+        for (int e = 0; e < epaisseur; e++) {
+            int px = x + dx + e;
+            if (px >= 0 && px < n_actuel && liaison_y >= 0 && liaison_y < n_actuel) {
+                if (dx <= largeur * 1.5) {
+                    Image[px][liaison_y] = NOIR;
+                }
+            }
+        }
+    }
+}
+
+// ============================================
+// FONCTION S : Recherche les images
+// ============================================
+vector<Rectangle> S() {
+    vector<Rectangle> resultats;
+    operations = 0;
+    
+    // Matrice pour marquer les pixels visités
+    vector<vector<bool>> visite(n_actuel, vector<bool>(n_actuel, false));
+    
+    // Parcours de toute l'image
+    for (int i = 0; i < n_actuel; i++) {
+        for (int j = 0; j < n_actuel; j++) {
+            operations += 2; // Comparaisons dans les boucles
+            
+            if (Image[i][j] == NOIR && !visite[i][j]) {
+                operations++; // Comparaison
+                
+                // Trouvé un nouveau composant - BFS pour trouver tout l'objet
+                int x_min = i, x_max = i, y_min = j, y_max = j;
+                vector<pair<int, int>> pile;
+                pile.push_back({i, j});
+                visite[i][j] = true;
+                
+                while (!pile.empty()) {
+                    operations++; // Vérification pile vide
+                    
+                    auto [x, y] = pile.back();
+                    pile.pop_back();
+                    operations += 2; // Accès aux éléments
+                    
+                    // Mise à jour des limites
+                    if (x < x_min) x_min = x;
+                    if (x > x_max) x_max = x;
+                    if (y < y_min) y_min = y;
+                    if (y > y_max) y_max = y;
+                    operations += 4; // 4 comparaisons
+                    
+                    // Vérifier les 8 voisins (connexité 8)
+                    for (int dx = -1; dx <= 1; dx++) {
+                        for (int dy = -1; dy <= 1; dy++) {
+                            operations += 2; // Incrémentations
+                            
+                            if (dx == 0 && dy == 0) continue;
+                            operations++; // Comparaison
+                            
+                            int nx = x + dx;
+                            int ny = y + dy;
+                            operations += 2; // Additions
+                            
+                            if (nx >= 0 && nx < n_actuel && ny >= 0 && ny < n_actuel) {
+                                operations += 4; // 4 comparaisons
+                                
+                                if (Image[nx][ny] == NOIR && !visite[nx][ny]) {
+                                    operations += 2; // Comparaisons
+                                    pile.push_back({nx, ny});
+                                    visite[nx][ny] = true;
+                                    operations += 2; // Push et assignation
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Ajouter le rectangle trouvé
+                resultats.push_back({x_min, y_min, x_max, y_max});
+                operations += 7; // Construction de l'objet et push
+            }
+        }
+    }
+    
+    return resultats;
+}
+
+// ============================================
+// PROGRAMME P1 : Test
+// ============================================
+void P1() {
+    cout << "=== PROGRAMME P1 : TEST ===" << endl;
+    
+    allouerImage(50);
+    initialiserBlanc(50);
+    
+    // Placer plusieurs lettres 'б'
+    cout << "Placement de lettres 'б' sur l'image..." << endl;
+    F(5, 5, 10);
+    F(25, 30, 12);
+    F(35, 10, 8);
+    F(10, 35, 9);
+    
+    // Rechercher
+    vector<Rectangle> images = S();
+    
+    // Afficher les résultats
+    cout << "Images trouvées : " << images.size() << endl;
+    for (size_t i = 0; i < images.size(); i++) {
+        cout << "Image " << i+1 << " : ("
+             << images[i].x1 << "," << images[i].y1 << ") - ("
+             << images[i].x2 << "," << images[i].y2 << ")" << endl;
+    }
+    cout << "Nombre d'opérations : " << operations << endl;
+    
+    // Petit affichage ASCII pour visualiser
+    cout << "\nAperçu de l'image (50x50 tronqué) :" << endl;
+    for (int i = 0; i < min(20, n_actuel); i++) {
+        for (int j = 0; j < min(40, n_actuel); j++) {
+            cout << (Image[i][j] == NOIR ? '#' : '.');
+        }
+        cout << endl;
+    }
+}
+
+// ============================================
+// PROGRAMME P2 : Mesure de complexité
+// ============================================
+void P2() {
+    cout << "\n=== PROGRAMME P2 : MESURE DE COMPLEXITÉ ===" << endl;
+    
+    vector<int> tailles;
+    vector<double> T_moyen;
+    
+    // Générateur aléatoire
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> distrib_pos(0, 999);
+    uniform_int_distribution<> distrib_taille(6, 15);
+    
+    for (int n = MIN_N; n <= MAX_N; n += PAS) {
+        allouerImage(n);
+        long long somme_ops = 0;
+        
+        for (int k = 0; k < NB_EXP_PAR_N; k++) {
+            initialiserBlanc(n);
+            
+            // Placer aléatoirement plusieurs images sans chevauchement
+            vector<Rectangle> places;
+            int tentatives = 0;
+            const int MAX_TENTATIVES = 1000;
+            int nb_images = 3 + (k % 3); // 3 à 5 images selon l'expérience
+            
+            while (places.size() < nb_images && tentatives < MAX_TENTATIVES) {
+                tentatives++;
+                int x = distrib_pos(gen) % (n - 20);
+                int y = distrib_pos(gen) % (n - 20);
+                int taille = distrib_taille(gen); // Taille entre 6 et 15
+                
+                // Vérifier chevauchement avec images déjà placées
+                bool chevauche = false;
+                int x2 = x + taille;
+                int y2 = y + taille;
+                
+                for (const auto& img : places) {
+                    if (!(x2 < img.x1 || x > img.x2 || y2 < img.y1 || y > img.y2)) {
+                        chevauche = true;
+                        break;
+                    }
+                }
+                
+                if (!chevauche) {
+                    F(x, y, taille);
+                    places.push_back({x, y, x+taille-1, y+taille-1});
+                }
+            }
+            
+            // Rechercher et compter les opérations
+            S();
+            somme_ops += operations;
+        }
+        
+        double moyenne = static_cast<double>(somme_ops) / NB_EXP_PAR_N;
+        tailles.push_back(n);
+        T_moyen.push_back(moyenne);
+        
+        cout << "n = " << n << " : T(n) moyen = " << fixed << setprecision(0) << moyenne << endl;
+    }
+    
+    // Sauvegarder les données pour le graphique
+    ofstream fichier("donnees_complexite.txt");
+    for (size_t i = 0; i < tailles.size(); i++) {
+        fichier << tailles[i] << " " << T_moyen[i] << endl;
+    }
+    fichier.close();
+    cout << "\nDonnées sauvegardées dans 'donnees_complexite.txt'" << endl;
+    
+    // Trouver la formule par méthode des coefficients indéterminés
+    if (tailles.size() >= 4) {
+        // Prendre 4 points pour déterminer le polynôme de degré 3
+        vector<int> indices = {0, 2, 4, 6}; // n=100, 300, 500, 700
+        
+        double n0 = tailles[indices[0]];
+        double n1 = tailles[indices[1]];
+        double n2 = tailles[indices[2]];
+        double n3 = tailles[indices[3]];
+        
+        double y0 = T_moyen[indices[0]];
+        double y1 = T_moyen[indices[1]];
+        double y2 = T_moyen[indices[2]];
+        double y3 = T_moyen[indices[3]];
+        
+        // Résolution du système d'équations
+        // k0 + k1*n + k2*n^2 + k3*n^3 = y
+        
+        // Construction de la matrice
+        double A[4][4] = {
+            {1, n0, n0*n0, n0*n0*n0},
+            {1, n1, n1*n1, n1*n1*n1},
+            {1, n2, n2*n2, n2*n2*n2},
+            {1, n3, n3*n3, n3*n3*n3}
+        };
+        
+        double B[4] = {y0, y1, y2, y3};
+        double K[4] = {0};
+        
+        // Méthode de Gauss (simplifiée pour 4 équations)
+        for (int i = 0; i < 4; i++) {
+            // Normaliser la ligne i
+            double pivot = A[i][i];
+            for (int j = i; j < 4; j++) {
+                A[i][j] /= pivot;
+            }
+            B[i] /= pivot;
+            
+            // Éliminer dans les lignes suivantes
+            for (int k = i+1; k < 4; k++) {
+                double facteur = A[k][i];
+                for (int j = i; j < 4; j++) {
+                    A[k][j] -= facteur * A[i][j];
+                }
+                B[k] -= facteur * B[i];
+            }
+        }
+        
+        // Remontée
+        for (int i = 3; i >= 0; i--) {
+            K[i] = B[i];
+            for (int j = i+1; j < 4; j++) {
+                K[i] -= A[i][j] * K[j];
+            }
+        }
+        
+        cout << "\nFormule trouvée par méthode des coefficients indéterminés:" << endl;
+        cout << "T(n) = " << K[0];
+        if (abs(K[1]) > 1e-10) cout << " + " << K[1] << "*n";
+        if (abs(K[2]) > 1e-10) cout << " + " << K[2] << "*n^2";
+        if (abs(K[3]) > 1e-10) cout << " + " << K[3] << "*n^3";
+        cout << endl;
+        
+        if (abs(K[3]) < 1e-10) {
+            cout << "Note: Le coefficient du terme n^3 est presque nul, la complexité semble quadratique." << endl;
+        }
+    }
+}
+
+// ============================================
+// Programme principal
+// ============================================
+int main() {
+    setlocale(LC_ALL, "fr_FR.UTF-8");
+    
+    cout << "=========================================" << endl;
+    cout << "  RECHERCHE D'IMAGES - LETTRE 'б'" << endl;
+    cout << "=========================================" << endl;
+    
+    P1();
+    P2();
+    
+    // Libérer la mémoire
+    if (Image != nullptr) {
+        for (int i = 0; i < n_actuel; i++) {
+            delete[] Image[i];
+        }
+        delete[] Image;
+    }
+    
+    cout << "\nProgramme terminé." << endl;
+    return 0;
+}
