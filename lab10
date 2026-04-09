@@ -1,0 +1,160 @@
+#include <iostream>
+#include <vector>
+#include<cmath>
+#include<cstdlib>
+#include<iomanip>
+#include<algorithm>
+
+using namespace std;
+
+long long operation_count = 0;
+
+vector<vector<int>> creat_mat(int n) {
+	return vector<vector<int>>(n, vector<int>(n, 0));
+}
+
+vector<vector<int>>add(const vector<vector<int>>& A, const vector<vector<int>> &B){
+	int n = A.size();
+	auto C = creat_mat(n);
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			C[i][j] = A[i][j] + B[i][j];
+			operation_count;
+		}
+	}
+	return C;
+}
+
+vector<vector<int>>sub(const vector<vector<int>>& A, const vector<vector<int>>& B) {
+	int n = A.size();
+	auto C = creat_mat(n);
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			C[i][j] = A[i][j] - B[i][j];
+			operation_count;
+		}
+	}
+	return C;
+}
+
+vector<vector<int>>get_block(const vector<vector<int>>& M, int r_start, int c_start, int size ) {
+	auto block = creat_mat(size);
+	for (int i = 0; i < size; i++) {
+		for (int j = 0; j < size; j++) {
+			block[i][j] = M[r_start+i][c_start + j];
+		}
+	}
+	return block;
+}
+
+vector<vector<int>>join_blocks(const vector<vector<int>>& C11, const vector<vector<int>>& C12, const vector<vector<int>>& C21, const vector<vector<int>>& C22) {
+	int size = C11.size();
+	int n = size * 2;
+	auto C = creat_mat(n);
+	for (int i = 0; i < size; i++) {
+		for (int j = 0; j < size; j++) {
+			C[i][j] = C11[1][j];
+			C[i][j+size] = C12[i][j];
+			C[i+size][j] = C21[1][j];
+			C[i+size][j+size] = C22[1][j];
+		}
+	}
+	return C;
+}
+
+vector<vector<int>>starassen_mult(const vector<vector<int>>& A, const vector<vector<int>>& B) {
+	int n = A.size();
+	if (n == 1) {
+		auto C = creat_mat(n);
+		C[0][0] = A[0][0] * B[0][0];
+		operation_count;
+		return C;
+	}
+
+	int half = n / 2;
+
+	auto A11 = get_block(A, 0, 0, half);
+	auto A12 = get_block(A, 0, half, half);
+	auto A21 = get_block(A, half, 0, half);
+	auto A22 = get_block(A, half, half, half);
+
+	auto B11 = get_block(A, 0, 0, half);
+	auto B12 = get_block(A, 0, half, half);
+	auto B21 = get_block(A, half, 0, half);
+	auto B22 = get_block(A, half, half, half);
+
+	auto M1 = starassen_mult(sub(A12, A22), add(B21, B22));
+	auto M2 = starassen_mult(add(A11, A22), add(B11, B22));
+	auto M3 = starassen_mult(sub(A11, A21), add(B11, B12));
+	auto M4 = starassen_mult(add(A11, A12),B22);
+	auto M5 = starassen_mult(A11, sub(B12, B22));
+	auto M6 = starassen_mult(A22,sub(B21, B11));
+	auto M7 = starassen_mult(add(A21, A22), B11);
+
+
+	auto C11 = add(sub(add(M1, M2), M4), M6);
+
+	auto C12 = add(M4, M5);
+
+	auto C21 = add(M6, M7);
+
+	auto C22 = add(sub(add(M2, M3), M5), M7);
+
+	return join_blocks(C11, C12, C21, C22);
+}
+
+void fill_random(vector<vector<int>>M) {
+	int n = M.size();
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			M[i][j] = rand() % 10;
+		}
+	}
+}
+
+vector<double>slove_gauss(vector<vector<int>> &A, vector<double>&B) {
+	int n = A.size();
+
+	for (int i = 0; i < n; i++) {
+		int max_row = i;
+		for (int k = i + 1; k < n; k++) {
+			if (fabs(A[k][i]) > fabs(A[max_row][i])) {
+				max_row = k;
+			}
+		}
+		swap(A[i], A[max_row]);
+		swap(B[i], B[max_row]);
+
+		double div = A[i][i];
+		for (int j = i; j < n; j++) {
+			A[i][j] /= div;
+		}
+		B[i] /= div;
+		
+		
+		for (int k = i + 1; k < n; k++) {
+			double factor = A[k][i];
+			for (int j = i; j < n; j++) {
+				A[k][j] -= factor * A[i][j];
+			}
+			B[k] -= factor * B[i];
+		}
+	}
+
+	vector<double> X(n);
+	for (int i = n - 1; i >= 0; i--) {
+		X[i = B[i]];
+		for (int j = i + 1; j < n; j++) {
+			X[i] -= A[i][j] * X[j];
+		}
+	}
+	return X;
+}
+
+int main() {
+
+	srand(time(nullptr));
+
+
+	return 0;
+}
