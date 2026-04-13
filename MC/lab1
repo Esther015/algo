@@ -1,0 +1,49 @@
+#include <iostream>
+#include <cmath>
+using namespace std;
+
+double erf_taylor(double x) {
+    const double PI = acos(-1.0);
+    const double coef = 2.0 /sqrt (PI);
+
+    double somme = 0.0;
+    double terme = x;
+    int n = 0;
+
+    while (somme + terme != somme) {
+        somme += terme;
+        n++;
+        terme *= -x * x / (n * (2 * n + 1));
+    }
+    return coef * somme;
+}
+
+int main()
+{
+    //double valeurs[] = { 0.5, 1.0, 5.0, 10.0 };
+
+    /*for (double x : valeurs) {
+        double approx = erf_taylor(x);
+        double exact = erf(x);
+
+        cout << "x =" << x << "\n";
+        cout << "erf (serie) = "<<approx<<"\n";
+        cout << "erf (standard) = " << exact<<"\n";
+        cout << "erreur =" << approx - exact << "\n";
+        cout << endl;
+    }*/
+
+    double n;
+    cin >> n;
+    double approx = erf_taylor(n);
+    double exact = erf(n);
+
+    cout << "Valeur =" << n << "\n";
+    cout << "erf (serie) = " << approx << "\n";
+    cout << "erf (standard) = " << exact << "\n";
+    cout << "erreur =" << approx - exact << "\n";
+    cout << endl;
+
+    return 0;
+}
+
