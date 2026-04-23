@@ -1,0 +1,158 @@
+#include<iostream>
+#include <vector>
+#include <algorithm>
+#include<random>
+#include <chrono>
+#include<iomanip>
+
+using namespace std;
+
+long long compteur_permutations = 0;
+long long compteur_comparaions = 0;
+long long compteur_operations = 0;
+
+bool matrices_egales(const vector<vector<int >>& mat1, const vector<vector<int>>& mat2, const vector<int>peermutations, int n) {
+	compteur_operations++;
+
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			compteur_comparaions++;
+			compteur_operations++;
+
+			if (mat1[i][j] != mat2[i][j])
+				return false;
+		}
+	}
+	return true;
+}
+
+bool verification_degres(const  vector<vector<int >>& mat1, const vector<vector<int>>& mat2, int n) {
+	compteur_operations++;
+
+	vector<int> degre_entrant1(n, 0), degre_sortant1(n, 0);
+	vector <int > degre_entrant2(n, 0), degre_sortant2(n, 0);
+
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			compteur_comparaions += 2;
+			if (mat1[i][j] == 1) {
+				degre_sortant1[i]++;
+				degre_entrant1[j]++;
+			}
+			if (mat2[i][j] == 1) {
+				degre_sortant2[i]++;
+				degre_entrant2[j]++;
+			}
+		}
+	}
+
+	vector<pair<int, int>> paire1, paire2;
+
+	for (int i = 0; i < n; i++) {
+		compteur_operations++;
+		paire1.push_back({ degre_entrant1[i], degre_sortant1[i] });
+		paire1.push_back({ degre_entrant2[i], degre_sortant2[i] });
+	}
+
+	sort(paire1.begin(), paire1.end());
+	sort(paire2.begin(), paire2.end());
+
+	for (int i = 0; i < n; i++) {
+		compteur_comparaions++;
+		compteur_operations++;
+		if (paire1[i] != paire2[i])
+			return false;
+	}
+	return true;
+}
+
+bool isomorphes(const  vector<vector<int >>& mat1, const vector<vector<int>>& mat2, int n) {
+	compteur_operations++;
+
+	int aretes1 = 0, aretes2 = 0;
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			compteur_operations += 2;
+			aretes1 += mat1[i][j];
+			aretes2 += mat2[i][j];
+		}
+	}
+
+	compteur_comparaions++;
+	if (aretes1 != aretes2)
+		return false;
+
+	if (verification_degres(mat1, mat2, n))
+		return false;
+
+	vector<int>permutations(n); 
+	for (int i = 0; i < n; i++) {
+		permutations[i] = 1;
+	}
+	do {
+		compteur_permutations++;
+		if (matrices_egales(mat1, mat2, permutations, n))
+			return true;
+	} while (next_permutation(permutations.begin(), permutations.end()));
+
+	return false;
+}
+
+vector<vector<int>> generer_mat_aleatoire(int n, double densite) {
+	vector<vector<int>>mat(n, vector<int>(n, 0));
+
+	random_device rd;
+	mt19937 gen(rd());
+	uniform_real_distribution<> dis(0.0, 1.0);
+
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			if (i != j && dis(gen) < densite)
+				mat[i][j] = 1;
+		}
+	}
+
+	return mat;
+}
+
+vector<vector<int>> generer_mat_isomorphe(const vector<vector<int>>&mat_origine, int n) {
+	vector<int>permutation(n);
+	for (int i = 0; i < n; i++)
+		permutation[i] = i;
+
+	random_device rd;
+	mt19937 gen(rd());
+	shuffle(permutation.begin(), permutation.end(), gen);
+
+	vector<vector<int>>mat_isomorphe(n, vector<int>(n, 0));
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			mat_isomorphe[permutation[i]][permutation[j]] = mat_origine[i][j];
+		}
+	}
+
+	return mat_isomorphe;
+}
+
+int main() {
+	
+	vector<int>tailles = { 3, 4, 5, 6, 7, 8 };
+	double densite = 0.3;
+	
+	for (int n : tailles) {
+		auto mat1 = generer_mat_aleatoire(n, densite);
+
+		auto mat2 = generer_mat_isomorphe(mat1, n);
+
+		compteur_permutations = 0;
+		compteur_comparaions = 0;
+		compteur_operations = 0;
+
+		auto debut = chrono::high_resolution_clock::now();
+		bool result = isomorphes(mat1, mat2, n);
+		auto fin = chrono::high_resolution_clock::now();
+
+	}
+
+	return 0;
+}
