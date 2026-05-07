@@ -1,0 +1,300 @@
+#include <iostream>
+#include <vector>
+#include <random>
+#include <cmath>
+#include <fstream>
+
+using namespace std;
+
+const short blanc = 0;
+const short noir = 1;
+
+const int max_n = 1000;
+const int min_n = 100;
+const int pas = 100;
+
+const int nb_ex_par_n = 10;
+
+struct ImageRect
+{
+    int x1, y1;
+    int x2, y2;
+};
+
+short** picture = nullptr;
+bool** visited = nullptr;
+
+int current_n = 0;
+long long operations = 0;
+
+void allouerPicture(int n)
+{
+    if (picture != nullptr)
+    {
+        for (int i = 0; i < current_n; i++)
+        {
+            delete[] picture[i];
+            delete[] visited[i];
+        }
+
+        delete[] picture;
+        delete[] visited;
+    }
+
+    picture = new short*[n];
+    visited = new bool*[n];
+
+    for (int i = 0; i < n; i++)
+    {
+        picture[i] = new short[n];
+        visited[i] = new bool[n];
+    }
+
+    current_n = n;
+}
+
+void iniblanc(int n)
+{
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; j++)
+        {
+            picture[i][j] = blanc;
+            visited[i][j] = false;
+        }
+}
+
+void afficher(int n)
+{
+    cout << "\nAffichage de l'image\n";
+
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < n; j++)
+        {
+            if (picture[i][j] == noir)
+                cout << "#";
+            else
+                cout << ".";
+        }
+        cout << endl;
+    }
+}
+
+// Fonction pour dessiner la lettre D
+void dessinerD(int x, int y, int taille)
+{
+    int h = taille;
+    int w = taille / 2;
+
+    // Barre verticale gauche
+    for (int i = 0; i < h; i++)
+        if (x + i < current_n && y < current_n)
+            picture[x + i][y] = noir;
+
+    // Barre horizontale haute
+    for (int j = 0; j < w; j++)
+        if (x < current_n && y + j < current_n)
+            picture[x][y + j] = noir;
+
+    // Barre horizontale basse
+    for (int j = 0; j < w; j++)
+        if (x + h - 1 < current_n && y + j < current_n)
+            picture[x + h - 1][y + j] = noir;
+
+    // Barre verticale droite (partie courbe simplifiée)
+    for (int i = 0; i < h; i++)
+        if (x + i < current_n && y + w - 1 < current_n)
+            picture[x + i][y + w - 1] = noir;
+}
+
+// Fonction pour dessiner la lettre L
+void dessinerL(int x, int y, int taille)
+{
+    int h = taille;
+
+    // Barre verticale
+    for (int i = 0; i < h; i++)
+        if (x + i < current_n && y < current_n)
+            picture[x + i][y] = noir;
+
+    // Barre horizontale basse
+    for (int j = 0; j < h / 2; j++)
+        if (x + h - 1 < current_n && y + j < current_n)
+            picture[x + h - 1][y + j] = noir;
+}
+
+// Fonction pour dessiner la lettre T
+void dessinerT(int x, int y, int taille)
+{
+    int h = taille;
+    int w = taille / 2;
+
+    // Barre horizontale haute
+    for (int j = 0; j < w; j++)
+        if (x < current_n && y + j < current_n)
+            picture[x][y + j] = noir;
+
+    // Barre verticale centrale
+    for (int i = 0; i < h; i++)
+        if (x + i < current_n && y + w / 2 < current_n)
+            picture[x + i][y + w / 2] = noir;
+}
+
+void F(int x, int y, int taille)
+{
+    // Cette fonction n'est plus utilisée mais conservée pour compatibilité
+    // On peut la rediriger vers une lettre par défaut
+    dessinerT(x, y, taille);
+}
+
+void genererImages(int n)
+{
+    int nb = 1 + rand() % 3; // 1 à 3 lettres
+
+    for (int i = 0; i < nb; i++)
+    {
+        int x = rand() % (n - 30);
+        int y = rand() % (n - 30);
+        int lettre = rand() % 3; // 0:D, 1:L, 2:T
+
+        switch(lettre)
+        {
+            case 0:
+                dessinerD(x, y, 20);
+                break;
+            case 1:
+                dessinerL(x, y, 20);
+                break;
+            case 2:
+                dessinerT(x, y, 20);
+                break;
+        }
+    }
+}
+
+void DFS(int x, int y, ImageRect& rect)
+{
+    if (x < 0 || y < 0 || x >= current_n || y >= current_n)
+        return;
+
+    operations++;
+
+    if (visited[x][y] || picture[x][y] == blanc)
+        return;
+
+    visited[x][y] = true;
+
+    rect.x1 = min(rect.x1, x);
+    rect.y1 = min(rect.y1, y);
+    rect.x2 = max(rect.x2, x);
+    rect.y2 = max(rect.y2, y);
+
+    DFS(x + 1, y, rect);
+    DFS(x - 1, y, rect);
+    DFS(x, y + 1, rect);
+    DFS(x, y - 1, rect);
+}
+
+vector<ImageRect> S()
+{
+    vector<ImageRect> images;
+
+    for (int i = 0; i < current_n; i++)
+        for (int j = 0; j < current_n; j++)
+        {
+            operations++;
+
+            if (picture[i][j] == noir && !visited[i][j])
+            {
+                ImageRect rect;
+                rect.x1 = rect.x2 = i;
+                rect.y1 = rect.y2 = j;
+
+                DFS(i, j, rect);
+
+                images.push_back(rect);
+            }
+        }
+
+    return images;
+}
+
+void P1()
+{
+    cout << "===== PROGRAMME P1 =====\n";
+
+    int n = 50;
+
+    allouerPicture(n);
+    iniblanc(n);
+
+    // Test des trois lettres
+    dessinerD(5, 5, 15);
+    dessinerL(5, 25, 15);
+    dessinerT(5, 45, 15);
+
+    afficher(n);
+
+    vector<ImageRect> images = S();
+
+    if (images.empty())
+        cout << "ne contient pas\n";
+    else
+    {
+        cout << "\nImages trouvees :\n";
+
+        for (auto& r : images)
+        {
+            cout << "Coin haut gauche : ("
+                 << r.x1 << "," << r.y1 << ") ";
+
+            cout << "Coin bas droit : ("
+                 << r.x2 << "," << r.y2 << ")\n";
+        }
+    }
+}
+
+void P2()
+{
+    cout << "\n===== PROGRAMME P2 =====\n";
+
+    ofstream fout("resultats.txt");
+
+    for (int n = min_n; n <= max_n; n += pas)
+    {
+        long long somme = 0;
+
+        for (int k = 0; k < nb_ex_par_n; k++)
+        {
+            allouerPicture(n);
+            iniblanc(n);
+
+            genererImages(n);
+
+            operations = 0;
+
+            S();
+
+            somme += operations;
+        }
+
+        double T = (double)somme / nb_ex_par_n;
+
+        cout << "n = " << n << "   T(n) = " << T << endl;
+
+        fout << n << " " << T << endl;
+    }
+
+    fout.close();
+}
+
+int main()
+{
+    srand(time(0));
+
+    P1();
+
+    P2();
+
+    return 0;
+}
